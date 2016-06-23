@@ -12,6 +12,8 @@
 
 #load libraries
 library(chron)
+library(ggplot2)
+library(plyr)
 source("LGR_GGA_functionlib.R")
 
 #set path to data 
@@ -134,6 +136,19 @@ flux.dat <- data.frame(id=flux.id,date=flux.dates,timepoint=flux.timepoint,
                        CO2.flux.mass, CO2.flux.area, CO2.mol.rate, CO2.r2,
                        CH4.flux.mass, CH4.flux.area, CH4.mol.rate, CH4.r2)
 
-#flux.dat[flux.dat$timepoint=="time_1",]
-
+# Save calculated fluxes
 write.csv(flux.dat,file="LGR_flux_output.csv",row.names =FALSE)
+
+# Plot fluxes by group
+flux.dat <- flux.dat[complete.cases(flux.dat),]
+flux.dat$CO2.flux.mass <- flux.dat$CO2.flux.mass*1000
+CO2.groups <- summarySE(flux.dat[flux.dat$timepoint=="time_1",], 
+                        measurevar="CO2.flux.mass", groupvars=c("site","treat"))
+
+# Standard error of the mean
+ggplot(CO2.groups, aes(x=site, y=CO2.flux.mass, colour=treat)) + 
+  geom_errorbar(aes(ymin=CO2.flux.mass-se, ymax=CO2.flux.mass+se), width=.1) +
+  geom_line() +
+  geom_point()
+
+
