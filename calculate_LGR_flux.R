@@ -136,5 +136,5 @@ flux.dat <- data.frame(id=flux.id,date=flux.dates,timepoint=flux.timepoint,
 
 flux.dat[flux.dat$timepoint=="time_1",]
 
-write.csv(flux.dat,file="/Users/jhatala/Dropbox/Wellesley/student_research/summer_2016/jar_experiment/LGR_flux_output.csv",
+write.csv(flux.dat,file="/jar_experiment/LGR_flux_output.csv",
           row.names =FALSE)
