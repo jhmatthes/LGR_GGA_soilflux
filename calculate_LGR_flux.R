@@ -54,7 +54,7 @@ dates <- times <- reps <- CH4.sl <- CH4.r2 <- CO2.r2 <- CO2.sl <- flux.timepoint
 CH4.mol.rate <- CH4.flux.mass <- CH4.flux.area <- CO2.mol.rate <- CO2.flux.mass <- CO2.flux.area <- vector()
 
 # Loop over each date and calculate the fluxes by matching the LGR files with the time files.
-for(day in 1:(nrow(date.time)-sum(date.time$date=="")) ){
+for(day in 1:(nrow(date.time)-sum(date.time$date==""))){
   
   # Find LGR data files that match each date (i.e., for time_0, time_1, etc.)
   match.LGR.files <- grep(date.time$date[day],LGR.files)
@@ -68,7 +68,7 @@ for(day in 1:(nrow(date.time)-sum(date.time$date=="")) ){
                          row.names = 1:length(which(jar.dat[jar.time.col[day]]!="")))
   } else { 
     # Re-load file, in case previous clause clipped jar.dat for a different day
-    all.data = readLines(paste(time.path,time.files,sep=""))
+    all.data = readLines(paste(data.path,"jar_data.csv",sep=""))
     skip.second  = all.data[-2]
     jar.dat  = data.frame(read.csv(textConnection(skip.second), stringsAsFactors = FALSE, header = TRUE))
     jar.dat$id   = paste(jar.dat$site,jar.dat$rep,sep="")
@@ -134,7 +134,6 @@ flux.dat <- data.frame(id=flux.id,date=flux.dates,timepoint=flux.timepoint,
                        CO2.flux.mass, CO2.flux.area, CO2.mol.rate, CO2.r2,
                        CH4.flux.mass, CH4.flux.area, CH4.mol.rate, CH4.r2)
 
-flux.dat[flux.dat$timepoint=="time_1",]
+#flux.dat[flux.dat$timepoint=="time_1",]
 
-write.csv(flux.dat,file="/jar_experiment/LGR_flux_output.csv",
-          row.names =FALSE)
+write.csv(flux.dat,file="LGR_flux_output.csv",row.names =FALSE)
