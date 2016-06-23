@@ -12,19 +12,19 @@
 
 #load libraries
 library(chron)
+source("LGR_GGA_functionlib.R")
+
+#set path to data 
+data.path <- "data/"
 
 # List files with the output from the LGR analyzer
-LGR.path <- "/Users/jhatala/Dropbox/Wellesley/student_research/summer_2016/jar_experiment/LGR_data/"
-LGR.files    <- list.files(LGR.path)
+LGR.files    <- list.files(paste(data.path,"LGR_data/",sep=""),full.names=TRUE)
 
 # Load file with dates that correspond to timepoints
-date.path <- "/Users/jhatala/Dropbox/Wellesley/student_research/summer_2016/jar_experiment/"
-date.time <- read.csv(paste(date.path,"time_dates.csv",sep=""),header=TRUE, stringsAsFactors = FALSE)
+date.time <- read.csv(paste(data.path,"time_dates.csv",sep=""),header=TRUE, stringsAsFactors = FALSE)
 
 # Load file with the experimental replicate start times, jar size, soil mass
-time.path <- "/Users/jhatala/Dropbox/Wellesley/student_research/summer_2016/jar_experiment/jar_data/"
-time.files <- list.files(time.path)
-all.data = readLines(paste(time.path,time.files,sep=""))
+all.data = readLines(paste(data.path,"jar_data.csv",sep=""))
 skip.second  = all.data[-2]
 jar.dat  = data.frame(read.csv(textConnection(skip.second), stringsAsFactors = FALSE, header = TRUE))
 jar.dat$id   = paste(jar.dat$site,jar.dat$rep,sep="")
@@ -59,58 +59,15 @@ for(day in 1:(nrow(date.time)-sum(date.time$date=="")) ){
   # Find LGR data files that match each date (i.e., for time_0, time_1, etc.)
   match.LGR.files <- grep(date.time$date[day],LGR.files)
   
-  # Aggregate LGR files if there is more than one file per day.
-  if(length(match.LGR.files)>1){
-    for(day.file in 1:length(match.LGR.files)){ 
-      # Read LGR data and clean out garbage columns and rows.
-      LGR.tmp  <- read.csv(paste(LGR.path,LGR.files[match.LGR.files[day.file]],sep=""),header=TRUE,skip=1,stringsAsFactors = FALSE)
-      LGR.tmp  <- LGR.tmp[,1:14] #only use first 14 columns
-      if(sum(LGR.tmp[,1]=="-----BEGIN PGP MESSAGE-----")>0){
-        LGR.tmp  <- LGR.tmp[1:(which(LGR.tmp[,1]=="-----BEGIN PGP MESSAGE-----")-1),]
-      }
-      
-      # Format messy column 1 into LGR date & time.
-      LGR.date.tmp   <- strsplit(sapply(LGR.tmp$Time, as.character)," ")
-      LGR.date <- LGR.time <- vector()
-      for(i in 1:length(LGR.date.tmp)){
-        LGR.date[i] <- LGR.date.tmp[[i]][3]
-        LGR.time[i] <- LGR.date.tmp[[i]][4]
-      }
-      LGR.tmp.times <- times(LGR.time) 
-      
-      # Aggregate each file into a big daily file.
-      if(day.file == 1){
-        LGR.data  = LGR.tmp
-        LGR.times = LGR.tmp.times
-      } else {
-        LGR.data  = rbind(LGR.data,LGR.tmp)
-        LGR.times = c(LGR.times,LGR.tmp.times)
-      }
-    }
-  } else { # If there is only one file for this day:
-    # Read LGR data and clean out garbage columns and rows.
-    LGR.data  <- read.csv(paste(LGR.path,LGR.files[match.LGR.files],sep=""),
-                          header=TRUE,skip=1,stringsAsFactors = FALSE)
-    LGR.data  <- LGR.data[,1:14] #only use first 14 columns
-    if(sum(LGR.data[,1]=="-----BEGIN PGP MESSAGE-----")>0){
-      LGR.data  <- LGR.data[1:(which(LGR.data[,1]=="-----BEGIN PGP MESSAGE-----")-1),]
-    }
-    
-    # Format messy column 1 into LGR date & time.
-    LGR.date.tmp   <- strsplit(sapply(LGR.data$Time, as.character)," ")
-    LGR.date <- LGR.time <- vector()
-    for(i in 1:length(LGR.date.tmp)){
-      LGR.date[i] <- LGR.date.tmp[[i]][3]
-      LGR.time[i] <- LGR.date.tmp[[i]][4]
-    }
-    LGR.times <- times(LGR.time) 
-  }
+  # Aggregate and format LGR data
+  LGR.data <- format.LGR.output(LGR.files, match.LGR.files) 
   
   # Check if there are replicates missing on this day. If so, only use reps with times.
   if(sum(jar.dat[jar.time.col[day]]=="")>0){
     jar.dat = data.frame(jar.dat[which(jar.dat[jar.time.col[day]]!=""),],
                          row.names = 1:length(which(jar.dat[jar.time.col[day]]!="")))
-  } else { # Re-load file, in case previous clause clipped jar.dat for a different day
+  } else { 
+    # Re-load file, in case previous clause clipped jar.dat for a different day
     all.data = readLines(paste(time.path,time.files,sep=""))
     skip.second  = all.data[-2]
     jar.dat  = data.frame(read.csv(textConnection(skip.second), stringsAsFactors = FALSE, header = TRUE))
@@ -122,13 +79,13 @@ for(day in 1:(nrow(date.time)-sum(date.time$date=="")) ){
     
     # Find replicate start time and match to LGR time file.
     rep.time <- times(jar.dat[jar,jar.time.col[day]])
-    match.times <- which(abs(LGR.times-rep.time)==min(abs(LGR.times-rep.time)))
+    match.times <- which(abs(LGR.data$time-rep.time)==min(abs(LGR.data$time-rep.time)))
     
     # Define the LGR flux time period, get LGR data for that period.
     flux.period <- (match.times+buffer.start):(match.times+buffer.end) #find location of flux values 
-    CO2.conc <- LGR.data$X.CO2.d_ppm[flux.period]   #grab the matching CO2 concentrations
-    CH4.conc <- LGR.data$X.CH4.d_ppm[flux.period]   #grab the matching CH4 concentrations
-    dat.time <- LGR.times[flux.period]              #grab the matching times
+    CO2.conc <- LGR.data$data$X.CO2.d_ppm[flux.period]   #grab the matching CO2 concentrations
+    CH4.conc <- LGR.data$data$X.CH4.d_ppm[flux.period]   #grab the matching CH4 concentrations
+    dat.time <- LGR.data$time[flux.period]               #grab the matching times
     
     rep.index <- (day-1)*total.reps+jar #index for storage: (day number-1) * jars each day + nth jar
     seconds   <- seq(1,(fit.timepoints+1)*ts,by=ts) #seconds for lm fit
