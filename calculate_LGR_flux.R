@@ -142,13 +142,41 @@ write.csv(flux.dat,file="LGR_flux_output.csv",row.names =FALSE)
 # Plot fluxes by group
 flux.dat <- flux.dat[complete.cases(flux.dat),]
 flux.dat$CO2.flux.mass <- flux.dat$CO2.flux.mass*1000
-CO2.groups <- summarySE(flux.dat[flux.dat$timepoint=="time_1",], 
-                        measurevar="CO2.flux.mass", groupvars=c("site","treat"))
 
-# Standard error of the mean
-ggplot(CO2.groups, aes(x=site, y=CO2.flux.mass, colour=treat)) + 
+# Calculate Day 0, group summaries
+CO2.day0 <- summarySE(flux.dat[flux.dat$timepoint=="time_0",], 
+                      measurevar="CO2.flux.mass", groupvars=c("site","treat"))
+
+# Plot Day 0, standard error of the mean
+ggplot(CO2.day0, aes(x=site, y=CO2.flux.mass, colour=treat)) + 
   geom_errorbar(aes(ymin=CO2.flux.mass-se, ymax=CO2.flux.mass+se), width=.1) +
   geom_line() +
-  geom_point()
+  geom_point() + labs(title = "Day 0, 6/20/16") + 
+  ylab("CO2 Flux [mg-CO2 / (g-soil hr)]") + 
+  scale_y_continuous(limits = c(-1, 16))
+
+# Calculate Day 1, group summaries
+CO2.day1 <- summarySE(flux.dat[flux.dat$timepoint=="time_1",], 
+                        measurevar="CO2.flux.mass", groupvars=c("site","treat"))
+
+# Plot Day 1, standard error of the mean
+ggplot(CO2.day1, aes(x=site, y=CO2.flux.mass, colour=treat)) + 
+  geom_errorbar(aes(ymin=CO2.flux.mass-se, ymax=CO2.flux.mass+se), width=.1) +
+  geom_line() +
+  geom_point() + labs(title = "Day 1, 6/22/16") + 
+  ylab("CO2 Flux [mg-CO2 / (g-soil hr)]") + 
+  scale_y_continuous(limits = c(-1, 16))
+
+# Calculate Day 2, group summaries
+CO2.day2 <- summarySE(flux.dat[flux.dat$timepoint=="time_2",], 
+                      measurevar="CO2.flux.mass", groupvars=c("site","treat"))
+
+# Plot Day 1, standard error of the mean
+ggplot(CO2.day2, aes(x=site, y=CO2.flux.mass, colour=treat)) + 
+  geom_errorbar(aes(ymin=CO2.flux.mass-se, ymax=CO2.flux.mass+se), width=.1) +
+  geom_line() +
+  geom_point() + labs(title = "Day 2, 6/23/16") + 
+  ylab("CO2 Flux [mg-CO2 / (g-soil hr)]") + 
+  scale_y_continuous(limits = c(-1, 16))
 
 
