@@ -10,14 +10,8 @@
 #remember to do this:
 #install.packages("chron")
 
-#load libraries
-library(chron)
-library(ggplot2)
-library(plyr)
-source("LGR_GGA_functionlib.R")
-
 #set path to data 
-data.path <- "data/"
+data.path <- "data/input/"
 
 # List files with the output from the LGR analyzer
 LGR.files    <- list.files(paste(data.path,"LGR_data/",sep=""),full.names=TRUE)
@@ -32,19 +26,7 @@ jar.dat  = data.frame(read.csv(textConnection(skip.second), stringsAsFactors = F
 jar.dat$id   = paste(jar.dat$site,jar.dat$rep,sep="")
 jar.time.col = grep("time",colnames(jar.dat))
 
-# Experiment constants
-ts = 5 #timestep for LGR analyzer = 5 seconds in this case
-jar.area       = 0.004118 # Cross section area of Mason jar in m2 - DOUBLE CHECK THIS
 total.reps     = nrow(jar.dat) #number of experimental replicates (total # jars)
-buffer.start   = 12 # LGR timepoint to start on (after 12*ts = 60 seconds)
-buffer.end     = 24 # LGR timepoint to end on (was 34 --> changed to 2 minute window (24))
-fit.timepoints = 12 # Number of LGR timepoints to include for flux slope calculation
-plot.slope     = 1  # Make plots for CO2 concentration vs time for each jar, 0/1 = no/yes
-
-# Calculate total mol in system: n = (PV)/(RT) = (101325*Vol_system)/(8.31441*298.15)
-# Vol_system = LGR chamber + tubing + jar = 0.315 + 0.001 + 8 or 16 oz*(0.0295735 liters/oz)
-vol.system = 0.315 + 0.001 + jar.dat$jar_size*0.0295735
-n_total    = (101325*vol.system)/(8.31441*298.15) # n = (P * vol_system) / (R * T)
 
 # Always constants
 ppm.to.mol = 10^-6 
@@ -62,7 +44,7 @@ for(day in 1:(nrow(date.time)-sum(date.time$date==""))){
   match.LGR.files <- grep(date.time$date[day],LGR.files)
   
   # Aggregate and format LGR data
-  LGR.data <- format.LGR.output(LGR.files, match.LGR.files) 
+  LGR.data <- format_LGR_output(LGR.files, match.LGR.files) 
   
   # Check if there are replicates missing on this day. If so, only use reps with times.
   if(sum(jar.dat[jar.time.col[day]]=="")>0){
@@ -75,6 +57,7 @@ for(day in 1:(nrow(date.time)-sum(date.time$date==""))){
     jar.dat  = data.frame(read.csv(textConnection(skip.second), stringsAsFactors = FALSE, header = TRUE))
     jar.dat$id   = paste(jar.dat$site,jar.dat$rep,sep="")
   }
+  
   
   # Loop over jar replicates and calculate fluxes.
   for(jar in 1:nrow(jar.dat)){
@@ -136,47 +119,9 @@ flux.dat <- data.frame(id=flux.id,date=flux.dates,timepoint=flux.timepoint,
                        CO2.flux.mass, CO2.flux.area, CO2.mol.rate, CO2.r2,
                        CH4.flux.mass, CH4.flux.area, CH4.mol.rate, CH4.r2)
 
+flux.dat <- flux.dat[!is.na(flux.dat$id),] # Remove any NA rows if some days are missing reps
+flux.dat$CO2.flux.mass <- flux.dat$CO2.flux.mass*1000 #scale to mg-C / (g-soil * h)
+
 # Save calculated fluxes
-write.csv(flux.dat,file="LGR_flux_output.csv",row.names =FALSE)
-
-# Plot fluxes by group
-flux.dat <- flux.dat[complete.cases(flux.dat),]
-flux.dat$CO2.flux.mass <- flux.dat$CO2.flux.mass*1000
-
-# Calculate Day 0, group summaries
-CO2.day0 <- summarySE(flux.dat[flux.dat$timepoint=="time_0",], 
-                      measurevar="CO2.flux.mass", groupvars=c("site","treat"))
-
-# Plot Day 0, standard error of the mean
-ggplot(CO2.day0, aes(x=site, y=CO2.flux.mass, colour=treat)) + 
-  geom_errorbar(aes(ymin=CO2.flux.mass-se, ymax=CO2.flux.mass+se), width=.1) +
-  geom_line() +
-  geom_point() + labs(title = "Day 0, 6/20/16") + 
-  ylab("CO2 Flux [mg-CO2 / (g-soil hr)]") + 
-  scale_y_continuous(limits = c(-1, 16))
-
-# Calculate Day 1, group summaries
-CO2.day1 <- summarySE(flux.dat[flux.dat$timepoint=="time_1",], 
-                        measurevar="CO2.flux.mass", groupvars=c("site","treat"))
-
-# Plot Day 1, standard error of the mean
-ggplot(CO2.day1, aes(x=site, y=CO2.flux.mass, colour=treat)) + 
-  geom_errorbar(aes(ymin=CO2.flux.mass-se, ymax=CO2.flux.mass+se), width=.1) +
-  geom_line() +
-  geom_point() + labs(title = "Day 1, 6/22/16") + 
-  ylab("CO2 Flux [mg-CO2 / (g-soil hr)]") + 
-  scale_y_continuous(limits = c(-1, 16))
-
-# Calculate Day 2, group summaries
-CO2.day2 <- summarySE(flux.dat[flux.dat$timepoint=="time_2",], 
-                      measurevar="CO2.flux.mass", groupvars=c("site","treat"))
-
-# Plot Day 1, standard error of the mean
-ggplot(CO2.day2, aes(x=site, y=CO2.flux.mass, colour=treat)) + 
-  geom_errorbar(aes(ymin=CO2.flux.mass-se, ymax=CO2.flux.mass+se), width=.1) +
-  geom_line() +
-  geom_point() + labs(title = "Day 2, 6/23/16") + 
-  ylab("CO2 Flux [mg-CO2 / (g-soil hr)]") + 
-  scale_y_continuous(limits = c(-1, 16))
-
+write.csv(flux.dat,file="data/output/LGR_flux_output.csv",row.names =FALSE)
 
