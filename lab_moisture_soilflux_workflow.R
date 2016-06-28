@@ -1,4 +1,10 @@
 # This file outlines the workflow for the Lab Soil Flux Moisture Manipulation Experiment
+# Three datasets are required to run this processing script:
+#     1. Seperate directory (folder) with raw LGR files (.txt files) with 
+#         dates in titles like gga_2016-06-22_f0000.txt
+#     2. Text (.csv) file with all replicates listed (rep.data), soil weight, jar size, 
+#         and flux measurement start times for each timepoint (time_0, time_1, time_2 etc.)
+#     3. Text (.csv) file that assigns dates for each timepoint (date.data: time_0 is 2016-06-20, etc.)
 # Summer 2016, Jaclyn Hatala Matthes
 
 # Load libraries
@@ -9,8 +15,10 @@ library(plyr)
 # Load R function source files (everything from project path R/)
 lapply(list.files(path="R/",pattern = "[.]R$", recursive = TRUE, full.names=TRUE), source)
 
-# Set path to data 
-data.path <- "data/input/"
+# Set input data 
+data.path = "data/input/" 
+rep.data  = "jar_data.csv"
+date.data = "time_dates.csv"
 
 # Set experiment constants: init = list of intialization parameters
 init <- list ()
@@ -34,8 +42,9 @@ chamber.vol     = jar.dat$rep_volume*oz.to.liters # Volume of chambers/jars
 vol.system      = 0.315 + 0.001 + chamber.vol
 init$n.total    = (101325*vol.system)/(8.31441*298.15) # n = (P * vol_system) / (R * T)
 
-# Run LGR processing function to calculate fluxes - also requires format_LGR_output.R to be loaded.
-flux.dat <- calculate_LGR_flux(data.path,init)
+# Run LGR processing function to calculate fluxes
+# Also requires format_LGR_output.R to be loaded
+flux.dat <- calculate_LGR_flux(data.path,rep.data,date.data,init)
 
 
 # Integrate total CO2 respired across the experiment by replicate

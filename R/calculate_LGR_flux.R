@@ -3,12 +3,12 @@
 # Three datasets are required to run this processing script:
 #     1. Seperate directory (folder) with raw LGR files (.txt files) with 
 #         dates in titles like gga_2016-06-22_f0000.txt
-#     2. Text (.csv) file with all jar replicates listed, soil weight, jar size, 
+#     2. Text (.csv) file with all replicates listed, soil weight, jar size, 
 #         and flux measurement start times for each timepoint (time_0, time_1, time_2 etc.)
 #     3. Text (.csv) file that assigns dates for each timepoint (time_0 is 2016-06-20, etc.)
 # This function uses format_LGR_output.R, which cleans and aggregates LGR data for each day. 
 
-calculate_LGR_flux <- function(data.path,init){
+calculate_LGR_flux <- function(data.path,rep.data,date.data,init){
  
   # Always constants
   ppm.to.mol = 10^-6 
@@ -19,16 +19,16 @@ calculate_LGR_flux <- function(data.path,init){
   LGR.files    <- list.files(paste(data.path,"LGR_data/",sep=""),full.names=TRUE)
   
   # Load file with dates that correspond to timepoints
-  date.time <- read.csv(paste(data.path,"time_dates.csv",sep=""),header=TRUE, stringsAsFactors = FALSE)
+  date.time <- read.csv(paste(data.path,date.data,sep=""),header=TRUE, stringsAsFactors = FALSE)
   
   # Load file with the experimental replicate start times, jar size, soil mass
-  all.data = readLines(paste(data.path,"jar_data.csv",sep=""))
+  all.data = readLines(paste(data.path,rep.data,sep=""))
   skip.second  = all.data[-2]
-  jar.dat  = data.frame(read.csv(textConnection(skip.second), stringsAsFactors = FALSE, header = TRUE))
-  jar.dat$id   = paste(jar.dat$site,jar.dat$rep,sep="")
-  jar.time.col = grep("time",colnames(jar.dat))
+  rep.dat  = data.frame(read.csv(textConnection(skip.second), stringsAsFactors = FALSE, header = TRUE))
+  rep.dat$id   = paste(rep.dat$site,rep.dat$rep,sep="")
+  rep.time.col = grep("time",colnames(rep.dat))
   
-  total.reps     = nrow(jar.dat) #number of experimental replicates (total # jars)
+  total.reps     = nrow(rep.dat) #number of experimental replicates (total # replicates)
   
   # Set up storage for things to calculate
   dates <- times <- reps <- CH4.sl <- CH4.r2 <- CO2.r2 <- CO2.sl <- flux.timepoint <- flux.dates <- flux.id <- flux.site <- flux.treat <- vector()
@@ -47,23 +47,23 @@ calculate_LGR_flux <- function(data.path,init){
     LGR.data <- format_LGR_output(LGR.files, match.LGR.files) 
     
     # Check if there are replicates missing on this day. If so, only use reps with times.
-    if(sum(jar.dat[jar.time.col[day]]=="")>0){
-      jar.dat = data.frame(jar.dat[which(jar.dat[jar.time.col[day]]!=""),],
-                           row.names = 1:length(which(jar.dat[jar.time.col[day]]!="")))
+    if(sum(rep.dat[rep.time.col[day]]=="")>0){
+      rep.dat = data.frame(rep.dat[which(rep.dat[rep.time.col[day]]!=""),],
+                           row.names = 1:length(which(rep.dat[rep.time.col[day]]!="")))
     } else { 
-      # Re-load file, in case previous clause clipped jar.dat for a different day
-      all.data = readLines(paste(data.path,"jar_data.csv",sep=""))
+      # Re-load file, in case previous clause clipped rep.dat for a different day
+      all.data = readLines(paste(data.path,rep.data,sep=""))
       skip.second  = all.data[-2]
-      jar.dat  = data.frame(read.csv(textConnection(skip.second), stringsAsFactors = FALSE, header = TRUE))
-      jar.dat$id   = paste(jar.dat$site,jar.dat$rep,sep="")
+      rep.dat  = data.frame(read.csv(textConnection(skip.second), stringsAsFactors = FALSE, header = TRUE))
+      rep.dat$id   = paste(rep.dat$site,rep.dat$rep,sep="")
     }
     
     
-    # Loop over jar replicates and calculate fluxes.
-    for(jar in 1:nrow(jar.dat)){
+    # Loop over replicates and calculate fluxes.
+    for(rep in 1:nrow(rep.dat)){
       
       # Find replicate start time and match to LGR time file.
-      rep.time <- times(jar.dat[jar,jar.time.col[day]])
+      rep.time <- times(rep.dat[rep,rep.time.col[day]])
       match.times <- which(abs(LGR.data$time-rep.time)==min(abs(LGR.data$time-rep.time)))
       
       # Define the LGR flux time period, get LGR data for that period.
@@ -72,7 +72,7 @@ calculate_LGR_flux <- function(data.path,init){
       CH4.conc <- LGR.data$data$X.CH4.d_ppm[flux.period]   #grab the matching CH4 concentrations
       dat.time <- LGR.data$time[flux.period]               #grab the matching times
       
-      rep.index <- (day-1)*total.reps+jar #index for storage: (day number-1) * jars each day + nth jar
+      rep.index <- (day-1)*total.reps+rep #index for storage: (day number-1) * reps each day + nth rep
       seconds   <- seq(1,((init$flux.end - init$flux.start)+1)*init$lgr.ts,by=init$lgr.ts) #seconds for lm fit
       
       # Calculate flux by fitting a line
@@ -82,15 +82,15 @@ calculate_LGR_flux <- function(data.path,init){
       
       # At same temp and pressure: V_CO2/V_T = n_CO2/n_total, n_CO2 = (ppm*10^-6) * n_total
       # The calculation is the same for the slope (ppm/s): (slope*10^-6) * n_total = mol/s 
-      CH4.mol.rate[rep.index]  = CH4.sl[rep.index]*ppm.to.mol*init$n.total[jar] #mol/s
+      CH4.mol.rate[rep.index]  = CH4.sl[rep.index]*ppm.to.mol*init$n.total[rep] #mol/s
       
       if(init$method == "jar"){ # Calculate flux per mass soil
-        CH4.flux.mass[rep.index] = (CH4.sl[rep.index]*ppm.to.mol*init$n.total[jar]*C.mol.to.g*sec.to.hour)/
-          jar.dat$soil_weight[jar] #g CO2 / (g soil * hour)
+        CH4.flux.mass[rep.index] = (CH4.sl[rep.index]*ppm.to.mol*init$n.total[rep]*C.mol.to.g*sec.to.hour)/
+          rep.dat$soil_weight[rep] #g CO2 / (g soil * hour)
         CH4.flux.area[rep.index] = NA
       } else if (init$method == "chamber"){ # Calculate flux per surface area
         CH4.flux.mass[rep.index] = NA
-        CH4.flux.area[rep.index] = (CH4.sl[rep.index]*ppm.to.mol*init$n.total[jar])/init$jar.area #umol/(m^2 * s)
+        CH4.flux.area[rep.index] = (CH4.sl[rep.index]*ppm.to.mol*init$n.total[rep])/init$surf.area #umol/(m^2 * s)
       }
       
       # Calculate CO2 flux by fitting a line
@@ -100,30 +100,30 @@ calculate_LGR_flux <- function(data.path,init){
       
       # At same temp and pressure: V_CO2/V_T = n_CO2/n_total, n_CO2 = (ppm*10^-6) * n_total
       # The calculation is the same for the slope (ppm/s): (slope*10^-6) * n_total = mol/s 
-      CO2.mol.rate[rep.index]  = CO2.sl[rep.index]*ppm.to.mol*init$n.total[jar] #mol/s
+      CO2.mol.rate[rep.index]  = CO2.sl[rep.index]*ppm.to.mol*init$n.total[rep] #mol/s
       
-      if(init$method == "jar"){ # Calculate flux per mass soil
-      CO2.flux.mass[rep.index] = (CO2.sl[rep.index]*ppm.to.mol*init$n.total[jar]*C.mol.to.g*sec.to.hour)/
-        jar.dat$soil_weight[jar] #g CO2 / (g soil * hour)
+      if(init$method == "rep"){ # Calculate flux per mass soil
+      CO2.flux.mass[rep.index] = (CO2.sl[rep.index]*ppm.to.mol*init$n.total[rep]*C.mol.to.g*sec.to.hour)/
+        rep.dat$soil_weight[rep] #g CO2 / (g soil * hour)
       CO2.flux.area[rep.index] = NA
       } else if(init$method == "chamber"){
         CO2.flux.mass[rep.index] = NA
-        CO2.flux.area[rep.index] = (CO2.sl[rep.index]*ppm.to.mol*init$n.total[jar])/init$jar.area #umol/(m^2 * s)
+        CO2.flux.area[rep.index] = (CO2.sl[rep.index]*ppm.to.mol*init$n.total[rep])/init$surf.area #umol/(m^2 * s)
       }
 
       # Make plots of CO2.conc vs time to visually inspect
       if(init$plot.slope == 1){
-        plot(seconds,CO2.conc,main=paste("Rep num: ",jar.dat$id[jar],sep=""))
+        plot(seconds,CO2.conc,main=paste("Rep num: ",rep.dat$id[rep],sep=""))
       }
       
       # Replicate/date bookkeeping
       flux.dates[rep.index] = date.time$date[day]
       flux.timepoint[rep.index] = date.time$time[day]
-      flux.id[rep.index]    = jar.dat$id[jar]
-      flux.site[rep.index]  = jar.dat$site[jar]
-      flux.treat[rep.index] = jar.dat$exp.group[jar]
+      flux.id[rep.index]    = rep.dat$id[rep]
+      flux.site[rep.index]  = rep.dat$site[rep]
+      flux.treat[rep.index] = rep.dat$exp.group[rep]
       
-    } #end jar loop
+    } #end rep loop
   } #end measuring day loop
   
   flux.dat <- data.frame(id=flux.id,date=flux.dates,timepoint=flux.timepoint,
