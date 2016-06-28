@@ -3,7 +3,7 @@
 #   2. LGR.match.files = index of LGR file names in LGR.files that match single day
 # Output of this function is a list (LGR.dat) with LGR times, LGR dates, and LGR data (cols 1:14)
 
-format_LGR_output <- function(LGR.files, LGR.match.files){
+format_LGR_output <- function(LGR.files, match.LGR.files){
   # Aggregate LGR files if there is more than one file per day.
   if(length(match.LGR.files)>1){
     for(day.file in 1:length(match.LGR.files)){ 
