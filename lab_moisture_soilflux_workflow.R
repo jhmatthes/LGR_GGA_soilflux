@@ -6,7 +6,7 @@ library(chron)
 library(ggplot2)
 library(plyr)
 
-# Load source files
+# Load R function source files (everything from project path R/)
 lapply(list.files(path="R/",pattern = "[.]R$", recursive = TRUE, full.names=TRUE), source)
 
 # Set path to data 
@@ -36,6 +36,7 @@ init$n.total    = (101325*vol.system)/(8.31441*298.15) # n = (P * vol_system) / 
 
 # Run LGR processing function to calculate fluxes - also requires format_LGR_output.R to be loaded.
 flux.dat <- calculate_LGR_flux(data.path,init)
+
 
 # Integrate total CO2 respired across the experiment by replicate
 flux.dat.wide <- reshape(flux.dat, idvar = "id", timevar = "timepoint", direction = "wide")
