@@ -1,6 +1,6 @@
 # This file outlines the workflow for the Lab Soil Flux Moisture Manipulation Experiment
 # Three datasets are required to run this processing script:
-#     1. Seperate directory (folder) with raw LGR files (.txt files) with 
+#     1. Seperate directory (folder) called LGR_data/ with raw LGR files (.txt files) with 
 #         dates in titles like gga_2016-06-22_f0000.txt
 #     2. Text (.csv) file with all replicates listed (rep.data), soil weight, jar size, 
 #         and flux measurement start times for each timepoint (time_0, time_1, time_2 etc.)
