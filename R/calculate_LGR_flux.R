@@ -102,7 +102,7 @@ calculate_LGR_flux <- function(data.path,rep.data,date.data,init){
       # The calculation is the same for the slope (ppm/s): (slope*10^-6) * n_total = mol/s 
       CO2.mol.rate[rep.index]  = CO2.sl[rep.index]*ppm.to.mol*init$n.total[rep] #mol/s
       
-      if(init$method == "rep"){ # Calculate flux per mass soil
+      if(init$method == "jar"){ # Calculate flux per mass soil
       CO2.flux.mass[rep.index] = (CO2.sl[rep.index]*ppm.to.mol*init$n.total[rep]*C.mol.to.g*sec.to.hour)/
         rep.dat$soil_weight[rep] #g CO2 / (g soil * hour)
       CO2.flux.area[rep.index] = NA
@@ -140,6 +140,7 @@ calculate_LGR_flux <- function(data.path,rep.data,date.data,init){
   
   return(flux.dat)
 }
+
 # # Add second header for units info to flux.dat 
 # comment(flux.dat$id)    = "site * location * forest * treatment * rep"
 # comment(flux.dat$date)  = "YYYY-MM-DD"
