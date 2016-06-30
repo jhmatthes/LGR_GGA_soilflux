@@ -113,7 +113,8 @@ calculate_LGR_flux <- function(data.path,rep.data,date.data,init){
 
       # Make plots of CO2.conc vs time to visually inspect
       if(init$plot.slope == 1){
-        plot(seconds,CO2.conc,main=paste("Rep num: ",rep.dat$id[rep],sep=""))
+#        plot(seconds,CO2.conc,main=paste("Rep num: ",rep.dat$id[rep],sep=""))
+        plot(seconds,CH4.conc,main=paste("Rep num: ",rep.dat$id[rep],sep=""))
       }
       
       # Replicate/date bookkeeping

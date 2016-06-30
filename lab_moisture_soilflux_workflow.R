@@ -46,6 +46,8 @@ init$n.total    = (101325*vol.system)/(8.31441*298.15) # n = (P * vol_system) / 
 # Also requires format_LGR_output.R to be loaded
 flux.dat <- calculate_LGR_flux(data.path,rep.data,date.data,init)
 
+flux.dat = read.csv("data/output/LGR_flux_output.csv",header=TRUE)
+jar.dat = read.csv("data/input/jar_data.csv",header=TRUE)
 
 # Integrate total CO2 respired across the experiment by replicate
 flux.dat.wide <- reshape(flux.dat, idvar = "id", timevar = "timepoint", direction = "wide")
@@ -54,14 +56,24 @@ flux.dat.new  <- flux.dat.wide[,c(1,15,16,17,timepoint.cols)]
 colnames(flux.dat.new)[1:4] <- c("id", "site", "treat", "group")
 timepoint.new <- grep("time_",colnames(flux.dat.new))
 meas.timestep <- 24 #hours
-mass.CO2.total <- vector()
+mass.CO2.total <- mass.CO2.pre <- mass.CO2.post <- vector()
 for(n in 1:nrow(jar.dat)){
   mass.CO2.total[n] <- (meas.timestep/2)*
     (sum(flux.dat.new[n,grep("time_1",colnames(flux.dat.new)):timepoint.new[length(timepoint.new)]]) + 
        sum(flux.dat.new[n,(grep("time_1",colnames(flux.dat.new))+1):timepoint.new[length(timepoint.new)-1]]))
+  mass.CO2.pre[n] <- (meas.timestep/2)*
+    (sum(flux.dat.new[n,grep("time_1",colnames(flux.dat.new)):timepoint.new[5]]) + 
+       sum(flux.dat.new[n,(grep("time_1",colnames(flux.dat.new))+1):timepoint.new[4]]))
+  mass.CO2.post[n] <- (meas.timestep/2)*
+    sum(flux.dat.new[n,grep("time_5",colnames(flux.dat.new)):timepoint.new[7]])
 }
 
-flux.dat.new$CO2.total <- mass.CO2.total 
+flux.dat.new$CO2.total <- mass.CO2.total
+flux.dat.new$CO2.pre   <- mass.CO2.pre
+flux.dat.new$CO2.post  <- mass.CO2.post
+flux.dat.new$CO2.total <- mass.CO2.pre + mass.CO2.post
+
+write.csv(flux.dat.new,"data/output/total_C_respired.csv")
 
 ### Plotting stuff, in progress - MOVE TO SEPARATE FILE
 # Plot fluxes by group
@@ -145,7 +157,7 @@ ggplot(CO2.total, aes(x=site, y=CO2.total, colour=treat)) +
   geom_errorbar(aes(ymin=CO2.total-se, ymax=CO2.total+se), width=.1) +
   geom_line() + geom_point() + labs(title = expression('Total CO'[2]*' Respired') )+ 
   ylab(expression('CO'[2]*' Flux [mg-C / g-soil]')) + 
-  scale_y_continuous(limits = c(0, 700)) 
+  scale_y_continuous(limits = c(0, 1000)) 
 
 # CH4 flux summary
 pdf(file="figures/CH4flux_sitegroups_byday.pdf")
@@ -186,15 +198,39 @@ ggplot(CH4.day3, aes(x=site, y=CH4.flux.mass, colour=treat)) +
   ylab("CH4 Flux [ug-C / (g-soil hr)]") + 
   scale_y_continuous(limits = c(-0.3, 0.01))
 
-# Calculate Day 1, group summaries
+# Calculate Day 4, group summaries
 CH4.day4 <- summarySE(flux.dat[flux.dat$timepoint=="time_4"&flux.dat$CH4.r2>0.5,], 
                       measurevar="CH4.flux.mass", groupvars=c("site","treat"))
 
-# Plot Day 1, standard error of the mean
+# Plot Day 4, standard error of the mean
 ggplot(CH4.day4, aes(x=site, y=CH4.flux.mass, colour=treat)) + 
   geom_errorbar(aes(ymin=CH4.flux.mass-se, ymax=CH4.flux.mass+se), width=.1) +
   geom_line() +
   geom_point() + labs(title = "Day 4, 6/22/16") + 
+  ylab("CH4 Flux [ug-C / (g-soil hr)]") + 
+  scale_y_continuous(limits = c(-0.3, 0.01))
+
+# Calculate Day 5, group summaries
+CH4.day5 <- summarySE(flux.dat[flux.dat$timepoint=="time_5"&flux.dat$CH4.r2>0.5,], 
+                      measurevar="CH4.flux.mass", groupvars=c("site","treat"))
+
+# Plot Day 1, standard error of the mean
+ggplot(CH4.day5, aes(x=site, y=CH4.flux.mass, colour=treat)) + 
+  geom_errorbar(aes(ymin=CH4.flux.mass-se, ymax=CH4.flux.mass+se), width=.1) +
+  geom_line() +
+  geom_point() + labs(title = "Day 5, 6/28/16") + 
+  ylab("CH4 Flux [ug-C / (g-soil hr)]") + 
+  scale_y_continuous(limits = c(-0.3, 0.01))
+
+# Calculate Day 6, group summaries
+CH4.day6 <- summarySE(flux.dat[flux.dat$timepoint=="time_6"&flux.dat$CH4.r2>0.3,], 
+                      measurevar="CH4.flux.mass", groupvars=c("site","treat"))
+
+# Plot Day 6, standard error of the mean
+ggplot(CH4.day6, aes(x=site, y=CH4.flux.mass, colour=treat)) + 
+  geom_errorbar(aes(ymin=CH4.flux.mass-se, ymax=CH4.flux.mass+se), width=.1) +
+  geom_line() +
+  geom_point() + labs(title = "Day 6, 6/29/16") + 
   ylab("CH4 Flux [ug-C / (g-soil hr)]") + 
   scale_y_continuous(limits = c(-0.3, 0.01))
 
