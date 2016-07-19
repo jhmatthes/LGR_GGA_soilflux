@@ -44,7 +44,7 @@ init$n.total    = (101325*vol.system)/(8.31441*298.15) # n = (P * vol_system) / 
 
 # Run LGR processing function to calculate fluxes
 # Also requires format_LGR_output.R to be loaded
-flux.dat <- calculate_LGR_flux(data.path,rep.data,date.data,init)
+flux.dat = calculate_LGR_flux(data.path,rep.data,date.data,init)
 
 flux.dat = read.csv("data/output/LGR_flux_output.csv",header=TRUE)
 jar.dat = read.csv("data/input/jar_data.csv",header=TRUE)
@@ -137,6 +137,32 @@ ggplot(CO2.day4, aes(x=site, y=CO2.flux.mass, colour=treat)) +
   geom_point() + labs(title = "Day 4, 6/25/16") + 
   ylab("CO2 Flux [mg-C / (g-soil hr)]") + 
   scale_y_continuous(limits = c(-1, 16))
+
+# Calculate Day 5, group summaries
+CO2.day5 <- summarySE(flux.dat[flux.dat$timepoint=="time_5",], 
+                      measurevar="CO2.flux.mass", groupvars=c("site","treat"))
+
+# Plot Day 4, standard error of the mean
+ggplot(CO2.day5, aes(x=site, y=CO2.flux.mass, colour=treat)) + 
+  geom_errorbar(aes(ymin=CO2.flux.mass-se, ymax=CO2.flux.mass+se), width=.1) +
+  geom_line() +
+  geom_point() + labs(title = "Day 5, 6/25/16") + 
+  ylab("CO2 Flux [mg-C / (g-soil hr)]") + 
+  scale_y_continuous(limits = c(-1, 16))
+
+# Calculate Day 6, group summaries
+CO2.day6 <- summarySE(flux.dat[flux.dat$timepoint=="time_6",], 
+                      measurevar="CO2.flux.mass", groupvars=c("site","treat"))
+
+# Plot Day 6, standard error of the mean
+ggplot(CO2.day6, aes(x=site, y=CO2.flux.mass, colour=treat)) + 
+  geom_errorbar(aes(ymin=CO2.flux.mass-se, ymax=CO2.flux.mass+se), width=.1) +
+  geom_line() +
+  geom_point() + labs(title = "Day 6, 6/25/16") + 
+  ylab("CO2 Flux [mg-C / (g-soil hr)]") + 
+  scale_y_continuous(limits = c(-1, 16))
+
+
 dev.off()
 
 # Time series plots by site
