@@ -56,16 +56,17 @@ flux.dat.new  <- flux.dat.wide[,c(1,15,16,17,timepoint.cols)]
 colnames(flux.dat.new)[1:4] <- c("id", "site", "treat", "group")
 timepoint.new <- grep("time_",colnames(flux.dat.new))
 meas.timestep <- 24 #hours
-mass.CO2.total <- mass.CO2.pre <- mass.CO2.post <- vector()
+mass.CO2.total <- mass.CO2.pre <- mass.CO2.post <- avg.CO2.pre <- avg.CO2.post <- vector()
 for(n in 1:nrow(jar.dat)){
-  mass.CO2.total[n] <- (meas.timestep/2)*
+  mass.CO2.total[n] = (meas.timestep/2)*
     (sum(flux.dat.new[n,grep("time_1",colnames(flux.dat.new)):timepoint.new[length(timepoint.new)]]) + 
        sum(flux.dat.new[n,(grep("time_1",colnames(flux.dat.new))+1):timepoint.new[length(timepoint.new)-1]]))
-  mass.CO2.pre[n] <- (meas.timestep/2)*
+  mass.CO2.pre[n]   = (meas.timestep/2)*
     (sum(flux.dat.new[n,grep("time_1",colnames(flux.dat.new)):timepoint.new[5]]) + 
        sum(flux.dat.new[n,(grep("time_1",colnames(flux.dat.new))+1):timepoint.new[4]]))
-  mass.CO2.post[n] <- (meas.timestep/2)*
+  mass.CO2.post[n]   = (meas.timestep/2)*
     sum(flux.dat.new[n,grep("time_5",colnames(flux.dat.new)):timepoint.new[7]])
+  avg.CO2.pre[n]     = 
 }
 
 flux.dat.new$CO2.total <- mass.CO2.total
