@@ -66,15 +66,19 @@ for(n in 1:nrow(jar.dat)){
        sum(flux.dat.new[n,(grep("time_1",colnames(flux.dat.new))+1):timepoint.new[4]]))
   mass.CO2.post[n]   = (meas.timestep/2)*
     sum(flux.dat.new[n,grep("time_5",colnames(flux.dat.new)):timepoint.new[7]])
-  avg.CO2.pre[n]     = 
+  avg.CO2.pre[n]     = mean(as.numeric(flux.dat.new[n,timepoint.new[2:5]]))
+  avg.CO2.post[n]    = mean(as.numeric(flux.dat.new[n,timepoint.new[6:7]]))
 }
 
-flux.dat.new$CO2.total <- mass.CO2.total
-flux.dat.new$CO2.pre   <- mass.CO2.pre
-flux.dat.new$CO2.post  <- mass.CO2.post
-flux.dat.new$CO2.total <- mass.CO2.pre + mass.CO2.post
+flux.dat.new$CO2.total = mass.CO2.total
+flux.dat.new$CO2.pre   = mass.CO2.pre
+flux.dat.new$CO2.post  = mass.CO2.post
+flux.dat.new$CO2.total = mass.CO2.pre + mass.CO2.post
+flux.dat.new$CO2.pre.avg = avg.CO2.pre
+flux.dat.new$CO2.post.avg = avg.CO2.post
 
-write.csv(flux.dat.new,"data/output/total_C_respired.csv")
+
+write.csv(flux.dat.new,"data/output/total_C_respired_v2.csv")
 
 ### Plotting stuff, in progress - MOVE TO SEPARATE FILE
 # Plot fluxes by group
